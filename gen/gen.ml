@@ -285,9 +285,9 @@ module Func = struct
         match t.name with
         | "cholesky" -> "linalg_cholesky", c_args_list t.args
         | "cholesky_out" -> "linalg_cholesky_out", c_args_list t.args
-        | "qr" -> "linalg_qr", "*self, (bool)some ? \\"reduced\\" : \\"complete\\""
+        | "qr" -> "linalg_qr", "*self, (bool)some ? \"reduced\" : \"complete\""
         | "qr_out" ->
-          "linalg_qr_out", "*Q, *R, *self, (bool)some ? \\"reduced\\" : \\"complete\\""
+          "linalg_qr_out", "*Q, *R, *self, (bool)some ? \"reduced\" : \"complete\""
         | _ -> t.name, c_args_list t.args
       in
       Printf.sprintf "torch::%s(%s)" name args
