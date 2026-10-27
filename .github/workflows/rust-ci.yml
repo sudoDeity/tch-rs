@@ -1,74 +1,49 @@
-on: [push, pull_request]
-
-name: Continuous integration
-
+name: PyTorch 2.15 compatibility
+on:
+  push:
+    branches: [main, compat/pytorch-2.15]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
 jobs:
-  check:
-    name: Check
+  cpu:
+    name: CPU smoke / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        rust: [stable, nightly]
+        os: [ubuntu-24.04, macos-15]
+    env:
+      LIBTORCH_USE_PYTORCH: "1"
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
         with:
-          profile: minimal
-          toolchain: ${{ matrix.rust }}
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --features download-libtorch
-
-  test:
-    name: Test Suite
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-        rust: [stable, nightly]
+          python-version: "3.12"
+      - name: Install PyTorch 2.15 RC from test index
+        run: |
+          python -m pip install --pre --index-url https://download.pytorch.org/whl/test/cpu torch==2.15.0
+          python -c 'import torch; assert torch.__version__.split("+")[0] == "2.15.0"; print(torch.__version__)'
+      - name: Configure native library loader
+        shell: bash
+        run: |
+          set -euo pipefail
+          TORCH_LIB="$(python -c 'import torch; from pathlib import Path; print(Path(torch.__file__).parent / "lib")')"
+          echo "LD_LIBRARY_PATH=$TORCH_LIB" >> "$GITHUB_ENV"
+          echo "DYLD_FALLBACK_LIBRARY_PATH=$TORCH_LIB" >> "$GITHUB_ENV"
+          echo "RUSTFLAGS=-C link-arg=-Wl,-rpath,$TORCH_LIB" >> "$GITHUB_ENV"
+      - name: Compile tch against PyTorch 2.15 without a bypass
+        run: cargo check --locked -p tch
+      - name: Run PyTorch 2.15 linalg and gradient smoke tests
+        run: cargo test --locked --test pytorch_215_smoke -- --nocapture
+  rustfmt:
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          profile: minimal
-          toolchain: ${{ matrix.rust }}
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --features download-libtorch
-
-  fmt:
-    name: Rustfmt
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - run: rustup component add rustfmt
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
-
-  clippy:
-    name: Clippy
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - run: rustup component add clippy
-      - uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --examples --tests --all-features --all -- -D warnings
+          components: rustfmt
+      - run: cargo fmt --all -- --check

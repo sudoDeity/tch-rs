@@ -10,7 +10,7 @@ use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 use std::{env, fs, io};
 
-const TORCH_VERSION: &str = "2.13.0";
+const TORCH_VERSION: &str = "2.15.0";
 const PYTHON_PRINT_PYTORCH_DETAILS: &str = r"
 import torch
 from torch.utils import cpp_extension
@@ -158,7 +158,7 @@ fn version_check(version: &str) -> Result<()> {
         return Ok(());
     }
     let version = version.trim();
-    // Typical version number is 2.13.0+cpu or 2.13.0+cu129
+    // Typical version number is 2.15.0+cpu or 2.15.0+cu132
     let version = match version.split_once('+') {
         None => version,
         Some((version, _)) => version,
@@ -312,11 +312,9 @@ impl SystemInfo {
                     "https://download.pytorch.org/libtorch/{}/libtorch-shared-with-deps-{}{}.zip",
                     device, TORCH_VERSION, match device.as_ref() {
                         "cpu" => "%2Bcpu",
-                        "cu118" => "%2Bcu118",
-                        "cu121" => "%2Bcu121",
-                        "cu124" => "%2Bcu124",
-                        "cu126" => "%2Bcu126",
-                        "cu128" => "%2Bcu128",
+                        // PyTorch 2.15 CUDA targets.
+                        "cu132" => "%2Bcu132",
+                        "cu134" => "%2Bcu134",
                         _ => anyhow::bail!("unsupported device {device}, TORCH_CUDA_VERSION may be set incorrectly?"),
                     }
                 ),
@@ -338,12 +336,10 @@ impl SystemInfo {
                     "https://download.pytorch.org/libtorch/{}/libtorch-win-shared-with-deps-{}{}.zip",
                     device, TORCH_VERSION, match device.as_ref() {
                         "cpu" => "%2Bcpu",
-                        "cu118" => "%2Bcu118",
-                        "cu121" => "%2Bcu121",
-                        "cu124" => "%2Bcu124",
-                        "cu126" => "%2Bcu126",
-                        "cu128" => "%2Bcu128",
-                        _ => ""
+                        // PyTorch 2.15 CUDA targets.
+                        "cu132" => "%2Bcu132",
+                        "cu134" => "%2Bcu134",
+                        _ => anyhow::bail!("unsupported device {device}, TORCH_CUDA_VERSION may be set incorrectly?")
                     }),
             };
 
@@ -382,7 +378,7 @@ impl SystemInfo {
                     .warnings(false)
                     .includes(&self.libtorch_include_dirs)
                     .flag(format!("-Wl,-rpath={}", self.libtorch_lib_dir.display()))
-                    .flag("-std=c++17")
+                    .flag("-std=c++20")
                     .flag(format!("-D_GLIBCXX_USE_CXX11_ABI={}", self.cxx11_abi))
                     .flag("-DGLOG_USE_GLOG_EXPORT")
                     .files(&c_files)
@@ -397,7 +393,7 @@ impl SystemInfo {
                     .pic(true)
                     .warnings(false)
                     .includes(&self.libtorch_include_dirs)
-                    .flag("/std:c++17")
+                    .flag("/std:c++20")
                     .flag("/p:DefineConstants=GLOG_USE_GLOG_EXPORT")
                     .files(&c_files)
                     .compile("tch");

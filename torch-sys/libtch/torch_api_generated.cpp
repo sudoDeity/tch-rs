@@ -5845,7 +5845,7 @@ void atg_channel_shuffle_out(tensor *out__, tensor out, tensor self, int64_t gro
 
 void atg_cholesky(tensor *out__, tensor self, int upper) {
   PROTECT(
-    auto outputs__ = torch::cholesky(*self, (bool)upper);
+    auto outputs__ = torch::linalg_cholesky(*self, (bool)upper);
     out__[0] = new torch::Tensor(outputs__);
   )
 }
@@ -5866,7 +5866,7 @@ void atg_cholesky_inverse_out(tensor *out__, tensor out, tensor self, int upper)
 
 void atg_cholesky_out(tensor *out__, tensor out, tensor self, int upper) {
   PROTECT(
-    auto outputs__ = torch::cholesky_out(*out, *self, (bool)upper);
+    auto outputs__ = torch::linalg_cholesky_out(*out, *self, (bool)upper);
     out__[0] = new torch::Tensor(outputs__);
   )
 }
@@ -13871,7 +13871,7 @@ int64_t atg_q_zero_point(tensor self) {
 
 void atg_qr(tensor *out__, tensor self, int some) {
   PROTECT(
-    auto outputs__ = torch::qr(*self, (bool)some);
+    auto outputs__ = torch::linalg_qr(*self, (bool)some ? "reduced" : "complete");
     out__[0] = new torch::Tensor(std::get<0>(outputs__));
     out__[1] = new torch::Tensor(std::get<1>(outputs__));
   )
@@ -13879,7 +13879,7 @@ void atg_qr(tensor *out__, tensor self, int some) {
 
 void atg_qr_q(tensor *out__, tensor Q, tensor R, tensor self, int some) {
   PROTECT(
-    auto outputs__ = torch::qr_out(*Q, *R, *self, (bool)some);
+    auto outputs__ = torch::linalg_qr_out(*Q, *R, *self, (bool)some ? "reduced" : "complete");
     out__[0] = new torch::Tensor(std::get<0>(outputs__));
     out__[1] = new torch::Tensor(std::get<1>(outputs__));
   )
