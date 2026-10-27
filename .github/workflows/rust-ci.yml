@@ -1,9 +1,13 @@
 name: PyTorch 2.15 compatibility
 on:
+  # PR commits run only once; the merged main branch is checked separately.
   push:
-    branches: [main, compat/pytorch-2.15]
+    branches: [main]
   pull_request:
   workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
