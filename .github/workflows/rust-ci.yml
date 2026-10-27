@@ -23,6 +23,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Verify runner architecture
+        shell: bash
+        run: |
+          uname -sm
+          python -c 'import platform; print(platform.machine())'
+          if [ "${{ runner.os }}" = macOS ]; then
+            test "$(uname -m)" = arm64
+          fi
       - name: Install PyTorch 2.15 RC from test index
         run: |
           python -m pip install --pre --index-url https://download.pytorch.org/whl/test/cpu torch==2.15.0
