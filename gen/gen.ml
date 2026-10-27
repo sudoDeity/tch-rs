@@ -277,7 +277,20 @@ module Func = struct
 
   let c_call t =
     match t.kind with
-    | `function_ -> Printf.sprintf "torch::%s(%s)" t.name (c_args_list t.args)
+    | `function_ ->
+      (* Keep the legacy Rust/C shim names, but emit PyTorch 2.15's
+         replacement C++ linalg entry points. The generated C++ bindings
+         must remain compatible after regenerating from native_functions.yaml. *)
+      let name, args =
+        match t.name with
+        | "cholesky" -> "linalg_cholesky", c_args_list t.args
+        | "cholesky_out" -> "linalg_cholesky_out", c_args_list t.args
+        | "qr" -> "linalg_qr", "*self, (bool)some ? \"reduced\" : \"complete\""
+        | "qr_out" ->
+          "linalg_qr_out", "*Q, *R, *self, (bool)some ? \"reduced\" : \"complete\""
+        | _ -> t.name, c_args_list t.args
+      in
+      Printf.sprintf "torch::%s(%s)" name args
     | `method_ ->
       (match t.args with
        | head :: tail ->
